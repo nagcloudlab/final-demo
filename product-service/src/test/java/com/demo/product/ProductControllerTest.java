@@ -22,16 +22,16 @@ class ProductControllerTest {
     @Test
     void getAllProducts_shouldReturnOk() throws Exception {
         mockMvc.perform(get("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$.length()").value(4))
                 .andExpect(jsonPath("$[0].name").value("Laptop"));
     }
 
     @Test
     void getProductById_shouldReturnProduct() throws Exception {
         mockMvc.perform(get("/api/products/1")
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Laptop"))
                 .andExpect(jsonPath("$.price").value(999.99));
@@ -40,7 +40,7 @@ class ProductControllerTest {
     @Test
     void getProductById_notFound_shouldReturn404() throws Exception {
         mockMvc.perform(get("/api/products/999")
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
 
