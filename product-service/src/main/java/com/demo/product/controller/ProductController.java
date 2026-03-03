@@ -26,6 +26,7 @@ public class ProductController {
         products.add(new Product(1L, "Laptop", 999.99, "High-performance laptop with 16GB RAM"));
         products.add(new Product(2L, "Wireless Mouse", 29.99, "Ergonomic wireless mouse with USB receiver"));
         products.add(new Product(3L, "Mechanical Keyboard", 79.99, "RGB mechanical keyboard with Cherry MX switches"));
+        products.add(new Product(4L, "Mechanical Keyboard", 79.99, "RGB mechanical keyboard with Cherry MX switches"));
     }
 
     @GetMapping
