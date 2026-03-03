@@ -2,9 +2,10 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = 'docker.io/nagabhushanamn'
-        IMAGE    = 'product-service'
-        TAG      = "${BUILD_NUMBER}"
+        REGISTRY     = 'nagabhushanamn'
+        IMAGE        = 'product-service'
+        TAG          = "${BUILD_NUMBER}"
+        DOCKER_HOST  = 'tcp://localhost:2375'
     }
 
     tools {
@@ -33,24 +34,31 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh "docker --version"  // Verify Docker CLI is available
-                // sh "docker build -t ${REGISTRY}/${IMAGE}:${TAG} -t ${REGISTRY}/${IMAGE}:latest product-service/"
+                sh "docker build -t ${REGISTRY}/${IMAGE}:${TAG} -t ${REGISTRY}/${IMAGE}:latest product-service/"
             }
         }
 
-        // stage('Docker Push') {
-        //     steps {
-        //         sh "docker push ${REGISTRY}/${IMAGE}:${TAG}"
-        //         sh "docker push ${REGISTRY}/${IMAGE}:latest"
-        //     }
-        // }
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                }
+            }
+        }
 
-        // stage('Deploy to K8s') {
-        //     steps {
-        //         sh "kubectl set image deployment/${IMAGE} ${IMAGE}=${REGISTRY}/${IMAGE}:${TAG} -n microservices"
-        //         sh "kubectl rollout status deployment/${IMAGE} -n microservices --timeout=120s"
-        //     }
-        // }
+        stage('Docker Push') {
+            steps {
+                sh "docker push ${REGISTRY}/${IMAGE}:${TAG}"
+                sh "docker push ${REGISTRY}/${IMAGE}:latest"
+            }
+        }
+
+        stage('Deploy to K8s') {
+            steps {
+                sh "kubectl set image deployment/${IMAGE} ${IMAGE}=${REGISTRY}/${IMAGE}:${TAG} -n microservices"
+                sh "kubectl rollout status deployment/${IMAGE} -n microservices --timeout=120s"
+            }
+        }
     }
 
     post {

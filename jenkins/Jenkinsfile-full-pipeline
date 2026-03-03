@@ -2,8 +2,14 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = 'localhost:5001'
-        TAG      = "${BUILD_NUMBER}"
+        REGISTRY     = 'nagabhushanamn'
+        TAG          = "${BUILD_NUMBER}"
+        DOCKER_HOST  = 'tcp://localhost:2375'
+    }
+
+    tools {
+        maven 'Maven 3.8.5'
+        jdk 'OpenJDK 17'
     }
 
     stages {
@@ -53,20 +59,38 @@ pipeline {
             }
         }
 
-        stage('Docker Build & Push') {
+        stage('Docker Build') {
             steps {
                 // product-service
                 sh "docker build -t ${REGISTRY}/product-service:${TAG} -t ${REGISTRY}/product-service:latest product-service/"
+
+                // order-service
+                sh "docker build -t ${REGISTRY}/order-service:${TAG} -t ${REGISTRY}/order-service:latest order-service/"
+
+                // api-gateway
+                sh "docker build -t ${REGISTRY}/api-gateway:${TAG} -t ${REGISTRY}/api-gateway:latest api-gateway/"
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                // product-service
                 sh "docker push ${REGISTRY}/product-service:${TAG}"
                 sh "docker push ${REGISTRY}/product-service:latest"
 
                 // order-service
-                sh "docker build -t ${REGISTRY}/order-service:${TAG} -t ${REGISTRY}/order-service:latest order-service/"
                 sh "docker push ${REGISTRY}/order-service:${TAG}"
                 sh "docker push ${REGISTRY}/order-service:latest"
 
                 // api-gateway
-                sh "docker build -t ${REGISTRY}/api-gateway:${TAG} -t ${REGISTRY}/api-gateway:latest api-gateway/"
                 sh "docker push ${REGISTRY}/api-gateway:${TAG}"
                 sh "docker push ${REGISTRY}/api-gateway:latest"
             }

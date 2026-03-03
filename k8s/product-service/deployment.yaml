@@ -17,7 +17,8 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: docker.io/nagabhushanamn/product-service:latest
+          image: nagabhushanamn/product-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8081
           readinessProbe:

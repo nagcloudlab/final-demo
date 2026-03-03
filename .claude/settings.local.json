@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"=== Checking for any remaining localhost:5001 references ===\" && grep -r \"localhost:5001\" /home/azureuser/final-demo/ --include=\"*.yaml\" --include=\"*.yml\" --include=\"*.sh\" --include=\"Jenkinsfile*\" 2>/dev/null || echo \"None found - clean!\" && echo \"\" && echo \"=== Checking for kind load references ===\" && grep -r \"kind load\" /home/azureuser/final-demo/ --include=\"*.sh\" --include=\"Jenkinsfile*\" 2>/dev/null || echo \"None in scripts\" && echo \"\" && echo \"=== Verifying Docker Hub references ===\" && grep -rn \"nagabhushanamn\" /home/azureuser/final-demo/ --include=\"*.yaml\" --include=\"*.yml\" --include=\"*.sh\" --include=\"Jenkinsfile*\" 2>/dev/null | head -20)",
+      "Bash(kind get clusters 2>/dev/null || echo \"kind not found or no clusters\")",
+      "Bash(kubectl get nodes 2>/dev/null && echo \"---\" && kubectl get pods -A 2>/dev/null | head -20)",
+      "Bash(sudo apt-get install -y socat)",
+      "Bash(sudo docker inspect k8s-demo-control-plane --format '{{.NetworkSettings.Networks.kind.IPAddress}}')",
+      "Bash(lsof -i :30000 2>/dev/null | head -5 || ss -tlnp | grep 30000)",
+      "Bash(echo \"=== Testing all ports ===\" && curl -s -o /dev/null -w \"Jenkins \\(30000\\): HTTP %{http_code}\\\\n\" --max-time 5 http://localhost:30000 2>/dev/null || echo \"Jenkins \\(30000\\): not ready yet\" && curl -s -o /dev/null -w \"Gateway \\(30080\\): HTTP %{http_code}\\\\n\" --max-time 5 http://localhost:30080/api/gateway/health 2>/dev/null || echo \"Gateway \\(30080\\): not ready yet\" && echo \"\" && echo \"=== Active socat processes ===\" && ps aux | grep \"socat TCP-LISTEN\" | grep -v grep)",
+      "Bash(bash /home/azureuser/final-demo/monitoring/setup-monitoring.sh)",
+      "Bash(kubectl apply -f /home/azureuser/final-demo/k8s/jenkins/deployment.yaml && echo \"\" && echo \"Waiting for Jenkins to restart with DinD sidecar...\" && kubectl rollout status deployment/jenkins -n jenkins --timeout=180s)",
+      "Bash(kubectl get pods -n jenkins && echo \"---\" && kubectl describe pod -n jenkins -l app=jenkins 2>/dev/null | tail -30)",
+      "Bash(sudo docker build -t jenkins-custom:latest /home/azureuser/final-demo/jenkins/)",
+      "Bash(sudo kind load docker-image jenkins-custom:latest --name k8s-demo)",
+      "Bash(kubectl apply -f /home/azureuser/final-demo/k8s/jenkins/deployment.yaml && echo \"Applied. Waiting for rollout...\" && sleep 5 && kubectl get pods -n jenkins)",
+      "Bash(kubectl describe pod jenkins-5577b898b7-xkz89 -n jenkins | grep -A 5 \"State:\" | head -20)",
+      "Bash(echo \"Waiting for Jenkins pod with DinD to be fully ready...\" && kubectl rollout status deployment/jenkins -n jenkins --timeout=180s && echo \"\" && kubectl get pods -n jenkins)"
+    ]
+  }
+}

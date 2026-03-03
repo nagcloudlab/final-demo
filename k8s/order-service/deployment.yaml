@@ -17,7 +17,8 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: docker.io/nagabhushanamn/order-service:latest
+          image: nagabhushanamn/order-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8082
           env:

@@ -2,9 +2,15 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = 'localhost:5001'
-        IMAGE    = 'api-gateway'
-        TAG      = "${BUILD_NUMBER}"
+        REGISTRY     = 'nagabhushanamn'
+        IMAGE        = 'api-gateway'
+        TAG          = "${BUILD_NUMBER}"
+        DOCKER_HOST  = 'tcp://localhost:2375'
+    }
+
+    tools {
+        maven 'Maven 3.8.5'
+        jdk 'OpenJDK 17'
     }
 
     stages {
@@ -29,6 +35,14 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh "docker build -t ${REGISTRY}/${IMAGE}:${TAG} -t ${REGISTRY}/${IMAGE}:latest api-gateway/"
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                }
             }
         }
 
