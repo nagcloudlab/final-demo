@@ -10,7 +10,6 @@ pipeline {
     tools {
         maven 'Maven 3.8.5'
         jdk 'OpenJDK 17'
-        git 'Git 2.40.1'
     }
 
     stages {
