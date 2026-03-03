@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: cpu-stress-order-service
+  namespace: microservices
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - microservices
+    labelSelectors:
+      app: order-service
+  stressors:
+    cpu:
+      workers: 2
+      load: 80
+  duration: "60s"

@@ -1,0 +1,119 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = 'localhost:5001'
+        TAG      = "${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build All') {
+            parallel {
+                stage('Build product-service') {
+                    steps {
+                        sh 'cd product-service && mvn clean package -DskipTests'
+                    }
+                }
+                stage('Build order-service') {
+                    steps {
+                        sh 'cd order-service && mvn clean package -DskipTests'
+                    }
+                }
+                stage('Build api-gateway') {
+                    steps {
+                        sh 'cd api-gateway && mvn clean package -DskipTests'
+                    }
+                }
+            }
+        }
+
+        stage('Test All') {
+            parallel {
+                stage('Test product-service') {
+                    steps {
+                        sh 'cd product-service && mvn test'
+                    }
+                }
+                stage('Test order-service') {
+                    steps {
+                        sh 'cd order-service && mvn test'
+                    }
+                }
+                stage('Test api-gateway') {
+                    steps {
+                        sh 'cd api-gateway && mvn test'
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                // product-service
+                sh "docker build -t ${REGISTRY}/product-service:${TAG} -t ${REGISTRY}/product-service:latest product-service/"
+                sh "docker push ${REGISTRY}/product-service:${TAG}"
+                sh "docker push ${REGISTRY}/product-service:latest"
+
+                // order-service
+                sh "docker build -t ${REGISTRY}/order-service:${TAG} -t ${REGISTRY}/order-service:latest order-service/"
+                sh "docker push ${REGISTRY}/order-service:${TAG}"
+                sh "docker push ${REGISTRY}/order-service:latest"
+
+                // api-gateway
+                sh "docker build -t ${REGISTRY}/api-gateway:${TAG} -t ${REGISTRY}/api-gateway:latest api-gateway/"
+                sh "docker push ${REGISTRY}/api-gateway:${TAG}"
+                sh "docker push ${REGISTRY}/api-gateway:latest"
+            }
+        }
+
+        stage('Deploy to K8s') {
+            steps {
+                // Deploy product-service
+                sh "kubectl set image deployment/product-service product-service=${REGISTRY}/product-service:${TAG} -n microservices"
+                sh "kubectl rollout status deployment/product-service -n microservices --timeout=120s"
+
+                // Deploy order-service
+                sh "kubectl set image deployment/order-service order-service=${REGISTRY}/order-service:${TAG} -n microservices"
+                sh "kubectl rollout status deployment/order-service -n microservices --timeout=120s"
+
+                // Deploy api-gateway
+                sh "kubectl set image deployment/api-gateway api-gateway=${REGISTRY}/api-gateway:${TAG} -n microservices"
+                sh "kubectl rollout status deployment/api-gateway -n microservices --timeout=120s"
+            }
+        }
+
+        stage('Integration Test') {
+            steps {
+                sh '''
+                    echo "Waiting for services to stabilize..."
+                    sleep 10
+
+                    echo "Testing api-gateway health endpoint..."
+                    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:30080/actuator/health || true)
+
+                    if [ "$RESPONSE" = "200" ]; then
+                        echo "Integration test PASSED - Gateway is healthy (HTTP 200)"
+                    else
+                        echo "Integration test FAILED - Gateway returned HTTP $RESPONSE"
+                        exit 1
+                    fi
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Full pipeline succeeded! All services built, tested, and deployed.'
+        }
+        failure {
+            echo 'Full pipeline failed! Check the logs for details.'
+        }
+    }
+}

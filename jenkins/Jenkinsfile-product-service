@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = 'localhost:5001'
+        IMAGE    = 'product-service'
+        TAG      = "${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'cd product-service && mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'cd product-service && mvn test'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh "docker build -t ${REGISTRY}/${IMAGE}:${TAG} -t ${REGISTRY}/${IMAGE}:latest product-service/"
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                sh "docker push ${REGISTRY}/${IMAGE}:${TAG}"
+                sh "docker push ${REGISTRY}/${IMAGE}:latest"
+            }
+        }
+
+        stage('Deploy to K8s') {
+            steps {
+                sh "kubectl set image deployment/${IMAGE} ${IMAGE}=${REGISTRY}/${IMAGE}:${TAG} -n microservices"
+                sh "kubectl rollout status deployment/${IMAGE} -n microservices --timeout=120s"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}

@@ -1,0 +1,22 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-partition-gateway-order
+  namespace: microservices
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - microservices
+    labelSelectors:
+      app: api-gateway
+  direction: both
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - microservices
+      labelSelectors:
+        app: order-service
+  duration: "30s"

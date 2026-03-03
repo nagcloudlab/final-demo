@@ -1,0 +1,16 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-order-service
+  namespace: microservices
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - microservices
+    labelSelectors:
+      app: order-service
+  duration: "30s"
+  scheduler:
+    cron: "@every 2m"
