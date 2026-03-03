@@ -2,9 +2,15 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = 'localhost:5001'
+        REGISTRY = 'docker.io/nagabhushanamn'
         IMAGE    = 'product-service'
         TAG      = "${BUILD_NUMBER}"
+    }
+
+    tools {
+        maven 'Maven 3.8.5'
+        jdk 'OpenJDK 17',
+        git 'Git 2.40.1'
     }
 
     stages {

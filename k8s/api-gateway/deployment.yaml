@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: localhost:5001/api-gateway:latest
+          image: docker.io/nagabhushanamn/api-gateway:latest
           ports:
             - containerPort: 8080
           env:

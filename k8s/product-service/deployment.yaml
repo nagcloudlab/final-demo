@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: localhost:5001/product-service:latest
+          image: docker.io/nagabhushanamn/product-service:latest
           ports:
             - containerPort: 8081
           readinessProbe:

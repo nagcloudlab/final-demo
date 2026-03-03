@@ -22,43 +22,37 @@ for cmd in docker kind kubectl helm; do
 done
 echo ""
 
-# Step 2: Create local Docker registry
-echo "Step 2: Setting up local Docker registry..."
-if [ "$(docker inspect -f '{{.State.Running}}' "${REGISTRY_NAME}" 2>/dev/null)" != 'true' ]; then
-  docker run -d --restart=always -p "${REGISTRY_PORT}:5000" --network bridge --name "${REGISTRY_NAME}" registry:2
-  echo "  [ok] Registry started on localhost:${REGISTRY_PORT}"
-else
-  echo "  [ok] Registry already running"
-fi
-echo ""
 
 # Step 3: Create Kind cluster
 echo "Step 3: Creating Kind cluster..."
-if kind get clusters 2>/dev/null | grep -q "${CLUSTER_NAME}"; then
-  echo "  [ok] Cluster '${CLUSTER_NAME}' already exists"
-else
-  kind create cluster --name "${CLUSTER_NAME}" --config "${DEMO_DIR}/k8s/kind-config.yaml"
-  echo "  [ok] Cluster created"
-fi
+#!/bin/bash
+set -euo pipefail
 
-# Connect registry to Kind network
-if [ "$(docker inspect -f='{{json .NetworkSettings.Networks.kind}}' "${REGISTRY_NAME}" 2>/dev/null)" = 'null' ] || [ "$(docker inspect -f='{{json .NetworkSettings.Networks.kind}}' "${REGISTRY_NAME}" 2>/dev/null)" = '' ]; then
-  docker network connect "kind" "${REGISTRY_NAME}" 2>/dev/null || true
-fi
-
-# Configure registry in cluster
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: local-registry-hosting
-  namespace: kube-public
-data:
-  localRegistryHosting.v1: |
-    host: "localhost:${REGISTRY_PORT}"
-    help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
+# echo "=== Creating KIND cluster ==="
+# # KIND cluster config with port mappings
+cat <<'EOF' | kind create cluster --name k8s-demo --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30001
+        hostPort: 30001
+        protocol: TCP
+      - containerPort: 30002
+        hostPort: 30002
+        protocol: TCP
+  - role: worker
+  - role: worker
+  - role: worker
 EOF
+
 echo ""
+echo "=== Cluster created successfully ==="
+kubectl cluster-info --context kind-k8s-demo
+echo ""
+kubectl get nodes
+
 
 # Step 4: Create namespaces
 echo "Step 4: Creating namespaces..."
@@ -69,8 +63,8 @@ echo ""
 echo "Step 5: Building Docker images..."
 for service in product-service order-service api-gateway; do
   echo "  Building ${service}..."
-  docker build -t "localhost:${REGISTRY_PORT}/${service}:latest" "${DEMO_DIR}/${service}/"
-  docker push "localhost:${REGISTRY_PORT}/${service}:latest"
+  docker build -t "docker.io/nagabhushanamn/${service}:latest" "${DEMO_DIR}/${service}/"
+  docker push "docker.io/nagabhushanamn/${service}:latest"
   echo "  [ok] ${service} built and pushed"
 done
 echo ""
@@ -119,7 +113,7 @@ echo "  Orders:         http://localhost:30080/api/gateway/orders"
 echo "  Jenkins:        http://localhost:30000"
 echo ""
 echo "Jenkins Initial Password:"
-echo "  kubectl exec -n jenkins \$(kubectl get pod -n jenkins -l app=jenkins -o jsonpath='{.items[0].metadata.name}') -- cat /var/jenkins_home/secrets/initialAdminPassword 2>/dev/null || echo '  (Jenkins is still starting... run this command later)'"
+echo "kubectl exec -n jenkins \$(kubectl get pod -n jenkins -l app=jenkins -o jsonpath='{.items[0].metadata.name}') -- cat /var/jenkins_home/secrets/initialAdminPassword 2>/dev/null || echo '(Jenkins is still starting... run this command later)'"
 echo ""
 echo "To run Chaos Engineering experiments:"
 echo "  cd ${DEMO_DIR} && bash chaos/install-chaos-mesh.sh"

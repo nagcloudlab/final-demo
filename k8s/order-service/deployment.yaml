@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: localhost:5001/order-service:latest
+          image: docker.io/nagabhushanamn/order-service:latest
           ports:
             - containerPort: 8082
           env:
